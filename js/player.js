@@ -121,6 +121,7 @@
         currentStationTitle.textContent = st.name;
         currentStationGenre.innerHTML = '<i class="' + st.icon + '"></i> ' + st.genreLabel;
         currentTrackName.innerHTML = '<i class="fa-solid fa-headphones"></i> ' + st.track;
+        updateMediaSession(st);
 
         miniTitle.textContent = st.name;
         miniGenre.textContent = st.genreLabel;
@@ -303,6 +304,60 @@
         if (e.code === 'ArrowLeft') { e.preventDefault(); prevStation(); }
         if (e.code === 'KeyM') { toggleMute(); }
     });
+
+    
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').then((reg) => {
+                console.log('Studio FM Service Worker Ativo:', reg.scope);
+            }).catch((err) => console.log('SW falhou:', err));
+        });
+    }
+
+    // PWA Install Prompt Handler
+    let deferredPrompt = null;
+    const btnInstallApp = document.getElementById('btnInstallApp');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (btnInstallApp) btnInstallApp.style.display = 'inline-flex';
+    });
+
+    if (btnInstallApp) {
+        btnInstallApp.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('App instalado pelo usuário!');
+                }
+                deferredPrompt = null;
+            } else {
+                alert('Para instalar o aplicativo:\n\n- No Chrome/Edge: Clique no ícone de instalar na barra de endereços (ou menu 3 pontos > Instalar Rádio Studio FM).\n- No Celular: Toque no menu do navegador e escolha "Adicionar à tela inicial" ou "Instalar aplicativo".');
+            }
+        });
+    }
+
+    // MediaSession API (Lockscreen audio controls & notifications)
+    function updateMediaSession(st) {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: st.name,
+                artist: st.track || 'Rádio Studio FM Ao Vivo',
+                album: 'Mix Digital 2026',
+                artwork: [
+                    { src: 'assets/icon.svg', sizes: '512x512', type: 'image/svg+xml' }
+                ]
+            });
+
+            navigator.mediaSession.setActionHandler('play', () => playStream());
+            navigator.mediaSession.setActionHandler('pause', () => pauseStream());
+            navigator.mediaSession.setActionHandler('previoustrack', () => prevStation());
+            navigator.mediaSession.setActionHandler('nexttrack', () => nextStation());
+        }
+    }
 
     // Boot
     initVisualizer();

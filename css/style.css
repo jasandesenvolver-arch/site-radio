@@ -1367,3 +1367,27 @@ body {
         overflow-x: auto;
     }
 }
+
+/* PWA Install Button */
+.btn-install-app {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(157, 78, 221, 0.3));
+    border: 1px solid var(--accent-secondary);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 0 15px var(--accent-cyan-glow);
+    transition: var(--transition-fast);
+}
+
+.btn-install-app:hover {
+    background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+    color: #070913;
+    transform: scale(1.05);
+    box-shadow: 0 0 25px var(--accent-cyan-glow);
+}
