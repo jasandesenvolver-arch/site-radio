@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Rádio Studio FM & Mix Digital - A melhor experiência de Web Rádio ao vivo com Espectros Visuais estilo Avee Player 2026.">
+    <title>Rádio Studio FM | Web Rádio ao Vivo & Avee Visualizer 2026</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Main Style -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-dark">
+    <!-- Dynamic Ambient Glow Backdrop -->
+    <div class="ambient-glow" id="ambientGlow"></div>
+    <canvas id="ambientCanvas" class="ambient-canvas"></canvas>
+
+    <!-- Header / Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="container nav-content">
+            <a href="#" class="brand-logo" id="brandLogo">
+                <div class="logo-emblem">
+                    <i class="fa-solid fa-tower-broadcast logo-icon"></i>
+                    <div class="radar-ripple"></div>
+                </div>
+                <div class="logo-info">
+                    <div class="logo-title">STUDIO<span class="highlight">FM</span></div>
+                    <div class="logo-badge">MIX DIGITAL 2026</div>
+                </div>
+            </a>
+
+            <nav class="nav-menu" id="navMenu">
+                <a href="#hero-player" class="nav-item active"><i class="fa-solid fa-play"></i> Player</a>
+                <a href="#stations-section" class="nav-item"><i class="fa-solid fa-radio"></i> Estações</a>
+                <a href="#visualizer-studio" class="nav-item"><i class="fa-solid fa-wave-square"></i> Avee Studio</a>
+                <a href="#schedule-section" class="nav-item"><i class="fa-solid fa-calendar-days"></i> Programação</a>
+                <a href="#requests-section" class="nav-item"><i class="fa-solid fa-heart"></i> Pedidos</a>
+            </nav>
+
+            <div class="nav-actions">
+                <button class="btn-theme-toggle" id="btnFullscreen" title="Tela Cheia do Avee Visualizer">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+                <div class="live-pill">
+                    <span class="pulsing-red-dot"></span>
+                    <span class="live-text">NO AR</span>
+                </div>
+                <button class="mobile-toggle" id="mobileToggle" aria-label="Abrir Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Hero & Visualizer Player -->
+    <main class="main-wrapper">
+        <section class="hero-section" id="hero-player">
+            <div class="container">
+                <div class="hero-grid">
+                    
+                    <!-- Left: Player Control & Info -->
+                    <div class="player-panel-glass">
+                        <div class="panel-header">
+                            <span class="badge-tag" id="currentStationGenre"><i class="fa-solid fa-compact-disc"></i> POP & TOP HITS</span>
+                            <div class="audio-bitrate"><i class="fa-solid fa-signal"></i> 320 KBPS HD</div>
+                        </div>
+
+                        <div class="station-meta-block">
+                            <div class="cover-art-container" id="coverArt">
+                                <div class="cover-art-disc" id="coverDisc">
+                                    <div class="disc-grooves"></div>
+                                    <div class="disc-center">
+                                        <i class="fa-solid fa-music" id="coverIcon"></i>
+                                    </div>
+                                </div>
+                                <div class="spectrum-badge-mini" id="miniWaveBars">
+                                    <span></span><span></span><span></span><span></span>
+                                </div>
+                            </div>
+
+                            <div class="station-meta-texts">
+                                <span class="station-overline">VOCÊ ESTÁ OUVINDO</span>
+                                <h1 class="current-station-title" id="currentStationTitle">Rádio Studio FM</h1>
+                                <p class="current-track-name" id="currentTrackName"><i class="fa-solid fa-headphones"></i> Transmissão Ao Vivo 24h</p>
+                            </div>
+                        </div>
+
+                        <!-- Main Controls -->
+                        <div class="controls-area">
+                            <div class="main-buttons">
+                                <button class="btn-ctrl-secondary" id="btnPrevStation" title="Estação Anterior">
+                                    <i class="fa-solid fa-backward-step"></i>
+                                </button>
+                                <button class="btn-ctrl-play" id="btnMainPlay" title="Reproduzir / Pausar">
+                                    <i class="fa-solid fa-play" id="mainPlayIcon"></i>
+                                </button>
+                                <button class="btn-ctrl-secondary" id="btnNextStation" title="Próxima Estação">
+                                    <i class="fa-solid fa-forward-step"></i>
+                                </button>
+                            </div>
+
+                            <!-- Volume Slider & Mute -->
+                            <div class="volume-box">
+                                <button class="btn-volume" id="btnVolumeMute" title="Mudo">
+                                    <i class="fa-solid fa-volume-high" id="volIcon"></i>
+                                </button>
+                                <div class="slider-track-wrap">
+                                    <input type="range" id="volumeSlider" min="0" max="100" value="80" class="custom-slider">
+                                    <div class="slider-progress" id="volumeProgress" style="width: 80%;"></div>
+                                </div>
+                                <span class="volume-num" id="volumeNum">80%</span>
+                            </div>
+                        </div>
+
+                        <!-- Audio FX & Bass Enhancer Toggle -->
+                        <div class="audio-fx-bar">
+                            <div class="fx-item">
+                                <span class="fx-label"><i class="fa-solid fa-sliders"></i> Equalizador</span>
+                                <select id="eqPresetSelect" class="custom-select">
+                                    <option value="dynamic">✨ 2026 Dynamic Pro</option>
+                                    <option value="bass">🔥 Bass Booster Ultra</option>
+                                    <option value="vocal">🎙️ Vocal Clarity</option>
+                                    <option value="flat">🎚️ Flat / Studio</option>
+                                </select>
+                            </div>
+                            <div class="fx-item">
+                                <span class="fx-label"><i class="fa-solid fa-bolt"></i> Avee Bass Pulse</span>
+                                <button class="btn-toggle-active active" id="btnBassPulse">LIGADO</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Avee Player 2026 Spectrum Visualizer Stage -->
+                    <div class="avee-stage-glass" id="visualizer-studio">
+                        <div class="stage-header">
+                            <div class="stage-title">
+                                <i class="fa-solid fa-layer-group"></i>
+                                <span>AVEE SPECTRUM ENGINE 2026</span>
+                            </div>
+                            <!-- Spectrum Mode Selectors -->
+                            <div class="spectrum-tabs" id="spectrumTabs">
+                                <button class="mode-tab active" data-mode="circular" title="Espectro Radial Avee Trap">
+                                    <i class="fa-solid fa-circle-notch"></i> Circular
+                                </button>
+                                <button class="mode-tab" data-mode="cyberbars" title="Barras Neon Cyberpunk">
+                                    <i class="fa-solid fa-chart-simple"></i> Cyber Bars
+                                </button>
+                                <button class="mode-tab" data-mode="liquidwave" title="Ondas Líquidas 3D">
+                                    <i class="fa-solid fa-water"></i> Liquid Wave
+                                </button>
+                                <button class="mode-tab" data-mode="stardust" title="Constelação de Partículas">
+                                    <i class="fa-solid fa-atom"></i> Stardust
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Visualizer Canvas Container -->
+                        <div class="canvas-viewport" id="canvasViewport">
+                            <canvas id="aveeCanvas"></canvas>
+                            
+                            <!-- Central Holographic Artwork in Canvas -->
+                            <div class="hologram-center" id="hologramCenter">
+                                <div class="hologram-ring"></div>
+                                <div class="hologram-core">
+                                    <i class="fa-solid fa-radio"></i>
+                                </div>
+                            </div>
+
+                            <!-- Live Audio Metrics Overlay -->
+                            <div class="metrics-overlay">
+                                <div class="metric-chip"><span class="m-label">BASS</span><span class="m-val" id="valBass">-- dB</span></div>
+                                <div class="metric-chip"><span class="m-label">MID</span><span class="m-val" id="valMid">-- dB</span></div>
+                                <div class="metric-chip"><span class="m-label">TREBLE</span><span class="m-val" id="valTreble">-- dB</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Canvas Controls Bar -->
+                        <div class="stage-footer">
+                            <div class="color-palette-picker">
+                                <span>Tema Neon:</span>
+                                <div class="palette-dots">
+                                    <button class="dot-btn active" data-palette="cyber" style="background: linear-gradient(135deg, #a855f7, #06b6d4);" title="Cyber Violet & Cyan"></button>
+                                    <button class="dot-btn" data-palette="fire" style="background: linear-gradient(135deg, #ff007f, #ffaa00);" title="Electric Fire"></button>
+                                    <button class="dot-btn" data-palette="matrix" style="background: linear-gradient(135deg, #00f2fe, #4facfe);" title="Matrix Emerald"></button>
+                                    <button class="dot-btn" data-palette="sunset" style="background: linear-gradient(135deg, #f43f5e, #8b5cf6);" title="Sunset Vibes"></button>
+                                </div>
+                            </div>
+                            <div class="stage-hint">
+                                <i class="fa-solid fa-circle-info"></i> Toque para alternar efeitos visuais Avee
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Stations Grid Section -->
+        <section class="stations-section" id="stations-section">
+            <div class="container">
+                <div class="section-title-wrap">
+                    <div class="subtitle-tag"><i class="fa-solid fa-list-ul"></i> ESTAÇÕES EXCLUSIVAS</div>
+                    <h2 class="section-heading">Escolha Seu <span class="gradient-text">Gênero Favorito</span></h2>
+                    <p class="section-sub">Transmissões digitais em alta fidelidade com programação non-stop 24 horas.</p>
+                </div>
+
+                <!-- Genre Filter Pills -->
+                <div class="filter-pills" id="genreFilters">
+                    <button class="pill-btn active" data-filter="all">Todas as Estações</button>
+                    <button class="pill-btn" data-filter="pop">Pop & Hits</button>
+                    <button class="pill-btn" data-filter="dance">Eletrônica & EDM</button>
+                    <button class="pill-btn" data-filter="rock">Rock & Metal</button>
+                    <button class="pill-btn" data-filter="chill">Lo-Fi & Chill</button>
+                    <button class="pill-btn" data-filter="urban">Hip-Hop & R&B</button>
+                </div>
+
+                <!-- Cards Grid -->
+                <div class="stations-grid" id="stationsGrid">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Schedule Section -->
+        <section class="schedule-section" id="schedule-section">
+            <div class="container">
+                <div class="section-title-wrap">
+                    <div class="subtitle-tag"><i class="fa-solid fa-clock"></i> GRADE DE TRANSMISSÃO</div>
+                    <h2 class="section-heading">Programação <span class="gradient-text">Ao Vivo</span></h2>
+                    <p class="section-sub">Os melhores locutores e DJs comandando sua trilha sonora.</p>
+                </div>
+
+                <div class="schedule-cards-grid">
+                    <div class="schedule-card">
+                        <div class="time-badge">06:00 - 09:00</div>
+                        <div class="schedule-details">
+                            <h3><i class="fa-solid fa-sun"></i> Despertar Studio</h3>
+                            <p>Músicas animadas, notícias da manhã e astral positivo para começar o dia com tudo.</p>
+                        </div>
+                        <span class="sched-tag">Manhã</span>
+                    </div>
+
+                    <div class="schedule-card highlight-live">
+                        <div class="live-tag-badge"><span class="pulsing-red-dot"></span> AO VIVO AGORA</div>
+                        <div class="time-badge">12:00 - 15:00</div>
+                        <div class="schedule-details">
+                            <h3><i class="fa-solid fa-bolt"></i> Mix Digital Club 2026</h3>
+                            <p>As melhores viradas de EDM, House, Trap e Bass Music com DJs convidados do Brasil e do mundo.</p>
+                        </div>
+                        <span class="sched-tag live">Destaque</span>
+                    </div>
+
+                    <div class="schedule-card">
+                        <div class="time-badge">15:00 - 18:00</div>
+                        <div class="schedule-details">
+                            <h3><i class="fa-solid fa-headphones-simple"></i> Lo-Fi Café & Code</h3>
+                            <p>Sessão relaxante sem comerciais para foco, trabalho, estudo e momentos de tranquilidade.</p>
+                        </div>
+                        <span class="sched-tag">Tarde</span>
+                    </div>
+
+                    <div class="schedule-card">
+                        <div class="time-badge">20:00 - 23:00</div>
+                        <div class="schedule-details">
+                            <h3><i class="fa-solid fa-guitar"></i> Rock & Metal Force</h3>
+                            <p>Os maiores clássicos do rock internacional e lançamentos pesados com comentários exclusivos.</p>
+                        </div>
+                        <span class="sched-tag">Noite</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Song Requests & Live Interaction -->
+        <section class="requests-section" id="requests-section">
+            <div class="container">
+                <div class="request-glass-box">
+                    <div class="request-text-side">
+                        <div class="subtitle-tag"><i class="fa-solid fa-paper-plane"></i> PARTICIPE AO VIVO</div>
+                        <h2>Peça Sua Música no <span class="gradient-text">Mural da Studio FM</span></h2>
+                        <p>Envie seu recado e o nome da sua música favorita. Nosso sistema insere seu pedido na fila de reprodução!</p>
+                        
+                        <div class="recent-requests" id="recentRequestsList">
+                            <div class="req-item"><i class="fa-solid fa-comment-dots"></i> <strong>Carlos (SP):</strong> Toca Daft Punk - One More Time! 🔥</div>
+                            <div class="req-item"><i class="fa-solid fa-comment-dots"></i> <strong>Marina (RJ):</strong> Um abraço pra galera ouvindo a Studio Pop! ❤️</div>
+                        </div>
+                    </div>
+
+                    <div class="request-form-side">
+                        <form id="songRequestForm" class="request-form">
+                            <div class="input-group">
+                                <label for="reqName">Seu Nome / Cidade</label>
+                                <input type="text" id="reqName" placeholder="Ex: Lucas de Curitiba" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="reqSong">Música & Artista</label>
+                                <input type="text" id="reqSong" placeholder="Ex: The Weeknd - Blinding Lights" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="reqMessage">Recado Especial (Opcional)</label>
+                                <textarea id="reqMessage" rows="3" placeholder="Manda um abraço pra todo mundo..."></textarea>
+                            </div>
+                            <button type="submit" class="btn-submit-req">
+                                <i class="fa-solid fa-paper-plane"></i> Enviar Pedido
+                            </button>
+                            <div class="form-feedback" id="formFeedback"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Sticky Bottom Mini Player -->
+    <div class="mini-bar-player" id="miniBarPlayer">
+        <div class="container mini-bar-inner">
+            <div class="mini-station-info">
+                <div class="mini-disc-spin" id="miniDiscSpin">
+                    <i class="fa-solid fa-compact-disc"></i>
+                </div>
+                <div class="mini-texts">
+                    <span class="mini-title" id="miniTitle">Rádio Studio FM</span>
+                    <span class="mini-genre" id="miniGenre">Eletrônica & Pop</span>
+                </div>
+            </div>
+
+            <!-- Mini Visualizer Canvas -->
+            <canvas id="miniVisualizer" class="mini-canvas" width="180" height="40"></canvas>
+
+            <div class="mini-controls">
+                <button class="mini-btn-nav" id="miniBtnPrev"><i class="fa-solid fa-backward-step"></i></button>
+                <button class="mini-btn-play" id="miniBtnPlay"><i class="fa-solid fa-play" id="miniPlayIcon"></i></button>
+                <button class="mini-btn-nav" id="miniBtnNext"><i class="fa-solid fa-forward-step"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <div class="logo-title">STUDIO<span class="highlight">FM</span></div>
+                <p>A Web Rádio mais moderna do Brasil com motor de espectro sonoro Avee Player 2026. Música sem limites.</p>
+            </div>
+            <div class="footer-socials">
+                <a href="#" class="soc-link" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                <a href="#" class="soc-link" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
+                <a href="#" class="soc-link" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+                <a href="#" class="soc-link" title="Discord"><i class="fa-brands fa-discord"></i></a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Rádio Studio FM & Mix Digital. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/stations.js"></script>
+    <script src="js/visualizer.js"></script>
+    <script src="js/player.js"></script>
+</body>
+</html>
