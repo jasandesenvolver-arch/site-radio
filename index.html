@@ -393,5 +393,38 @@
     <script src="js/stations.js"></script>
     <script src="js/visualizer.js"></script>
     <script src="js/player.js"></script>
+
+    <!-- Floating Action Speed Dial (Baixar App & Compartilhar) -->
+    <div class="floating-fab-container" id="floatingFabContainer">
+        <div class="fab-menu" id="fabMenu">
+            <button class="fab-item" id="fabInstallApp" title="Baixar / Instalar Aplicativo">
+                <i class="fa-solid fa-download"></i>
+                <span class="fab-tooltip">Instalar App</span>
+            </button>
+            <button class="fab-item" id="fabShareWhatsapp" title="Compartilhar no WhatsApp">
+                <i class="fa-brands fa-whatsapp"></i>
+                <span class="fab-tooltip">WhatsApp</span>
+            </button>
+            <button class="fab-item" id="fabShareNative" title="Compartilhar Rádio">
+                <i class="fa-solid fa-share-nodes"></i>
+                <span class="fab-tooltip">Compartilhar</span>
+            </button>
+            <button class="fab-item" id="fabCopyLink" title="Copiar Link da Rádio">
+                <i class="fa-solid fa-link"></i>
+                <span class="fab-tooltip">Copiar Link</span>
+            </button>
+        </div>
+        <button class="fab-main-btn" id="fabMainBtn" aria-label="Menu Flutuante">
+            <i class="fa-solid fa-plus" id="fabIcon"></i>
+            <div class="fab-pulse-ring"></div>
+        </button>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="app-toast" id="appToast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMessage">Link copiado com sucesso!</span>
+    </div>
+
 </body>
 </html>

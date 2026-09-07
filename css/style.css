@@ -1529,3 +1529,165 @@ body {
     margin-bottom: 12px;
     color: var(--accent-primary);
 }
+
+/* ==========================================================
+   FLOATING ACTION BUTTON (FAB) & SHARING 2026
+   ========================================================== */
+.floating-fab-container {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.fab-main-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 25px var(--accent-glow), 0 8px 20px rgba(0, 0, 0, 0.5);
+    position: relative;
+    transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
+}
+
+.fab-main-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 35px var(--accent-cyan-glow), 0 0 20px var(--accent-primary);
+}
+
+.fab-main-btn.active {
+    transform: rotate(135deg);
+    background: linear-gradient(135deg, #ef4444, #f43f5e);
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+}
+
+.fab-pulse-ring {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-secondary);
+    opacity: 0.6;
+    animation: ripplePulse 2s infinite cubic-bezier(0, 0.2, 0.8, 1);
+    pointer-events: none;
+}
+
+.fab-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px) scale(0.8);
+    transition: all var(--transition-smooth);
+}
+
+.fab-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.fab-item {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(18, 22, 40, 0.9);
+    border: 1px solid var(--bg-glass-highlight);
+    backdrop-filter: blur(16px);
+    color: var(--text-pure);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.fab-item:hover {
+    transform: scale(1.15);
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-color: #fff;
+    color: #fff;
+    box-shadow: 0 0 20px var(--accent-glow);
+}
+
+#fabShareWhatsapp:hover {
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    box-shadow: 0 0 20px rgba(37, 211, 102, 0.6);
+}
+
+.fab-tooltip {
+    position: absolute;
+    right: 62px;
+    background: rgba(7, 9, 19, 0.95);
+    border: 1px solid var(--bg-glass-border);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all var(--transition-fast);
+}
+
+.fab-item:hover .fab-tooltip {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Toast Notification */
+.app-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: rgba(18, 22, 40, 0.95);
+    border: 1px solid var(--accent-secondary);
+    backdrop-filter: blur(20px);
+    color: #fff;
+    padding: 14px 24px;
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px var(--accent-cyan-glow);
+    z-index: 2000;
+    opacity: 0;
+    transition: all var(--transition-smooth);
+}
+
+.app-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.app-toast i {
+    color: var(--accent-secondary);
+    font-size: 18px;
+}
+
+@media (max-width: 768px) {
+    .floating-fab-container {
+        bottom: 84px;
+        right: 20px;
+    }
+}

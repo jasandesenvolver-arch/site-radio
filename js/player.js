@@ -465,6 +465,97 @@
         });
     }
 
+    
+    // ==========================================================
+    // FLOATING ACTION BUTTON & SHARING ENGINE
+    // ==========================================================
+    const fabMainBtn = document.getElementById('fabMainBtn');
+    const fabMenu = document.getElementById('fabMenu');
+    const fabInstallApp = document.getElementById('fabInstallApp');
+    const fabShareNative = document.getElementById('fabShareNative');
+    const fabShareWhatsapp = document.getElementById('fabShareWhatsapp');
+    const fabCopyLink = document.getElementById('fabCopyLink');
+    const appToast = document.getElementById('appToast');
+    const toastMessage = document.getElementById('toastMessage');
+
+    function showToast(msg) {
+        if (!appToast) return;
+        toastMessage.textContent = msg;
+        appToast.classList.add('visible');
+        setTimeout(() => {
+            appToast.classList.remove('visible');
+        }, 3500);
+    }
+
+    if (fabMainBtn && fabMenu) {
+        fabMainBtn.addEventListener('click', () => {
+            const isOpen = fabMenu.classList.toggle('open');
+            fabMainBtn.classList.toggle('active', isOpen);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#floatingFabContainer') && fabMenu.classList.contains('open')) {
+                fabMenu.classList.remove('open');
+                fabMainBtn.classList.remove('active');
+            }
+        });
+    }
+
+    // Baixar / Instalar App
+    if (fabInstallApp) {
+        fabInstallApp.addEventListener('click', () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt = null;
+            } else {
+                showToast('📲 Clique no ícone de instalar na barra de navegação!');
+            }
+        });
+    }
+
+    // Compartilhar Nativo
+    if (fabShareNative) {
+        fabShareNative.addEventListener('click', async () => {
+            const st = currentStationList[currentIndex] || {};
+            const shareData = {
+                title: 'Rádio Studio FM - Mix Digital 2026',
+                text: 'Estou ouvindo: ' + (st.name || 'Studio FM') + ' com espectro Avee Player! Vem ouvir:',
+                url: window.location.href
+            };
+
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                } catch (e) {
+                    console.log('Compartilhamento cancelado.');
+                }
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                showToast('🔗 Link da rádio copiado para a área de transferência!');
+            }
+        });
+    }
+
+    // Compartilhar no WhatsApp
+    if (fabShareWhatsapp) {
+        fabShareWhatsapp.addEventListener('click', () => {
+            const st = currentStationList[currentIndex] || {};
+            const text = encodeURIComponent('📻 *Rádio Studio FM & Mix Digital 2026*\nOuvindo agora: *' + (st.name || 'Studio FM') + '* com efeitos de espectro sonoro ao vivo!\n\nOuça agora grátis:\n' + window.location.href);
+            window.open('https://api.whatsapp.com/send?text=' + text, '_blank');
+        });
+    }
+
+    // Copiar Link
+    if (fabCopyLink) {
+        fabCopyLink.addEventListener('click', () => {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showToast('🔗 Link copiado com sucesso!');
+            }).catch(() => {
+                showToast('Link: ' + window.location.href);
+            });
+        });
+    }
+
     // Inicialização sem autoplay forçado (em conformidade com navegadores modernos)
     initVisualizer();
     renderStations(STATIONS);
