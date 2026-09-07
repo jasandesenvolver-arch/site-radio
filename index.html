@@ -81,7 +81,10 @@
                     <div class="player-panel-glass">
                         <div class="panel-header">
                             <span class="badge-tag" id="currentStationGenre"><i class="fa-solid fa-compact-disc"></i> POP & TOP HITS</span>
-                            <div class="audio-bitrate"><i class="fa-solid fa-signal"></i> 320 KBPS HD</div>
+                            <div class="status-indicator idle" id="streamStatusBadge">
+                                <span class="status-dot"></span> Toque em Play para ouvir
+                            </div>
+                        </div>
                         </div>
 
                         <div class="station-meta-block">
@@ -223,14 +226,27 @@
                     <p class="section-sub">Transmissões digitais em alta fidelidade com programação non-stop 24 horas.</p>
                 </div>
 
+                                <!-- Radio Search & Global Browser API -->
+                <div class="search-bar-wrap">
+                    <div class="search-input-box">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="radioSearchInput" placeholder="Buscar qualquer rádio do Brasil ou do Mundo (Ex: Jovem Pan, Alpha, Antena 1, Band, Sertanejo, Rock, BBC...)" autocomplete="off">
+                        <button class="btn-search-trigger" id="btnSearchRadio">
+                            <i class="fa-solid fa-arrow-right"></i> Buscar
+                        </button>
+                    </div>
+                    <div class="search-status-text" id="searchStatusText" style="display:none;"></div>
+                </div>
+
                 <!-- Genre Filter Pills -->
                 <div class="filter-pills" id="genreFilters">
-                    <button class="pill-btn active" data-filter="all">Todas as Estações</button>
+                    <button class="pill-btn active" data-filter="all">⭐ Verificadas HD</button>
+                    <button class="pill-btn" data-filter="brasil">🇧🇷 Rádios do Brasil</button>
+                    <button class="pill-btn" data-filter="world">🌍 Top Mundiais</button>
                     <button class="pill-btn" data-filter="pop">Pop & Hits</button>
-                    <button class="pill-btn" data-filter="dance">Eletrônica & EDM</button>
+                    <button class="pill-btn" data-filter="dance">Eletrônica / EDM</button>
                     <button class="pill-btn" data-filter="rock">Rock & Metal</button>
-                    <button class="pill-btn" data-filter="chill">Lo-Fi & Chill</button>
-                    <button class="pill-btn" data-filter="urban">Hip-Hop & R&B</button>
+                    <button class="pill-btn" data-filter="chill">Lo-Fi & Relax</button>
                 </div>
 
                 <!-- Cards Grid -->

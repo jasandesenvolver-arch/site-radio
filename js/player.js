@@ -1,23 +1,23 @@
 /**
- * RÁDIO STUDIO FM & MIX DIGITAL 2026 - CONTROLLER & AUDIO CORE
+ * RÁDIO STUDIO FM & MIX DIGITAL 2026 - CORE PLAYER & AUDIO CONTROLLER
  */
 (function () {
     'use strict';
 
     // State
+    let currentStationList = [...STATIONS];
     let currentIndex = 0;
     let isPlaying = false;
     let isMuted = false;
-    let currentVolume = 0.8;
+    let currentVolume = 0.85;
     let aveeEngine = null;
 
-    // Audio Object
+    // AUDIO ELEMENT RESILIENTE (SEM audio.crossOrigin para não ser bloqueado por CORS!)
     const audio = new Audio();
-    audio.crossOrigin = 'anonymous';
     audio.preload = 'none';
     audio.volume = currentVolume;
 
-    // DOM References
+    // DOM Elements
     const btnMainPlay = document.getElementById('btnMainPlay');
     const mainPlayIcon = document.getElementById('mainPlayIcon');
     const btnPrevStation = document.getElementById('btnPrevStation');
@@ -33,7 +33,7 @@
     const currentTrackName = document.getElementById('currentTrackName');
     const coverDisc = document.getElementById('coverDisc');
     const stationsGrid = document.getElementById('stationsGrid');
-    const genreFilters = document.getElementById('genreFilters');
+    const streamStatusBadge = document.getElementById('streamStatusBadge');
 
     const miniBarPlayer = document.getElementById('miniBarPlayer');
     const miniTitle = document.getElementById('miniTitle');
@@ -46,45 +46,62 @@
     const spectrumTabs = document.getElementById('spectrumTabs');
     const btnFullscreen = document.getElementById('btnFullscreen');
     const btnBassPulse = document.getElementById('btnBassPulse');
-    const songRequestForm = document.getElementById('songRequestForm');
-    const formFeedback = document.getElementById('formFeedback');
+    const radioSearchInput = document.getElementById('radioSearchInput');
+    const btnSearchRadio = document.getElementById('btnSearchRadio');
+    const searchStatusText = document.getElementById('searchStatusText');
+    const genreFilters = document.getElementById('genreFilters');
 
-    // Initialize Avee Engine
+    // Inicializa motor Avee Player
     function initVisualizer() {
         aveeEngine = new AveeVisualizer('aveeCanvas', 'miniVisualizer');
     }
 
-    // Render Stations Grid
-    function renderStations(filter = 'all') {
-        stationsGrid.innerHTML = '';
-        const filtered = filter === 'all' ? STATIONS : STATIONS.filter(s => s.genre === filter);
+    // Atualiza o crachá de status do streaming
+    function setStreamStatus(status, text) {
+        if (!streamStatusBadge) return;
+        streamStatusBadge.className = 'status-indicator ' + status;
+        streamStatusBadge.innerHTML = '<span class="status-dot"></span> ' + text;
+    }
 
-        filtered.forEach((st) => {
-            const actualIndex = STATIONS.findIndex(s => s.id === st.id);
-            const isCurrent = actualIndex === currentIndex;
-            const isFavorited = localStorage.getItem('fav_' + st.id) === 'true';
+    // Renderiza os Cards de Rádios na Grade
+    function renderStations(list = currentStationList) {
+        stationsGrid.innerHTML = '';
+        if (list.length === 0) {
+            stationsGrid.innerHTML = '<div class="no-stations"><i class="fa-solid fa-satellite-dish"></i> Nenhuma rádio encontrada para essa busca. Tente outro termo.</div>';
+            return;
+        }
+
+        list.forEach((st, idx) => {
+            const isCurrent = idx === currentIndex && currentStationList === list;
+            const isFavorited = localStorage.getItem('fav_' + (st.id || st.stationuuid)) === 'true';
+            const color = st.color || '#9d4edd';
+            const colorEnd = st.colorEnd || '#00f2fe';
+            const genreName = st.genreLabel || st.tags || 'ONLINE FM';
+            const iconClass = st.icon || 'fa-solid fa-radio';
+            const stationTitle = st.name || 'Rádio Ao Vivo';
+            const stationDesc = st.description || (st.country ? 'Emissora de ' + st.country : 'Streaming de áudio digital 24h.');
 
             const card = document.createElement('div');
             card.className = 'station-card' + (isCurrent && isPlaying ? ' playing' : '');
-            card.dataset.index = actualIndex;
+            card.dataset.index = idx;
 
             card.innerHTML = `
                 <div class="card-top">
-                    <div class="card-icon-wrap" style="background: linear-gradient(135deg, ${st.color}, ${st.colorEnd});">
-                        <i class="${st.icon}"></i>
+                    <div class="card-icon-wrap" style="background: linear-gradient(135deg, ${color}, ${colorEnd});">
+                        <i class="${iconClass}"></i>
                     </div>
-                    <button class="card-fav-btn ${isFavorited ? 'favorited' : ''}" data-id="${st.id}" title="Favoritar">
+                    <button class="card-fav-btn ${isFavorited ? 'favorited' : ''}" title="Favoritar">
                         <i class="fa-${isFavorited ? 'solid' : 'regular'} fa-heart"></i>
                     </button>
                 </div>
                 <div class="card-info">
-                    <div class="card-genre">${st.genreLabel}</div>
-                    <h3>${st.name}</h3>
-                    <p class="card-desc">${st.description}</p>
+                    <div class="card-genre">${genreName.substring(0, 24)}</div>
+                    <h3>${stationTitle}</h3>
+                    <p class="card-desc">${stationDesc.substring(0, 100)}</p>
                 </div>
                 <div class="card-footer-action">
                     <span class="card-play-label">
-                        <i class="fa-solid fa-signal"></i> 320k HD Audio
+                        <i class="fa-solid fa-tower-broadcast"></i> ${st.bitrate ? st.bitrate + ' kbps' : 'Ao Vivo'}
                     </span>
                     <div class="card-play-btn-circle">
                         <i class="fa-solid ${isCurrent && isPlaying ? 'fa-pause' : 'fa-play'}"></i>
@@ -92,77 +109,103 @@
                 </div>
             `;
 
-            // Card click to play
+            // Clique no card para tocar
             card.addEventListener('click', (e) => {
                 if (e.target.closest('.card-fav-btn')) return;
-                loadAndPlayStation(actualIndex);
+                currentStationList = list;
+                loadAndPlayStation(idx);
             });
 
-            // Favorite toggle
+            // Favoritar
             const favBtn = card.querySelector('.card-fav-btn');
             favBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const favState = localStorage.getItem('fav_' + st.id) === 'true';
-                localStorage.setItem('fav_' + st.id, (!favState).toString());
-                renderStations(document.querySelector('.pill-btn.active').dataset.filter);
+                const key = 'fav_' + (st.id || st.stationuuid);
+                const favState = localStorage.getItem(key) === 'true';
+                localStorage.setItem(key, (!favState).toString());
+                renderStations(list);
             });
 
             stationsGrid.appendChild(card);
         });
     }
 
-    // Load & Play Station
+    // Carregar e Tocar Estação
     function loadAndPlayStation(index) {
-        if (index < 0 || index >= STATIONS.length) return;
+        if (index < 0 || index >= currentStationList.length) return;
         currentIndex = index;
-        const st = STATIONS[index];
+        const st = currentStationList[index];
 
-        audio.src = st.url;
-        currentStationTitle.textContent = st.name;
-        currentStationGenre.innerHTML = '<i class="' + st.icon + '"></i> ' + st.genreLabel;
-        currentTrackName.innerHTML = '<i class="fa-solid fa-headphones"></i> ' + st.track;
-        updateMediaSession(st);
+        const streamUrl = st.url_resolved || st.url;
+        audio.src = streamUrl;
 
-        miniTitle.textContent = st.name;
-        miniGenre.textContent = st.genreLabel;
+        const displayName = st.name || 'Rádio Studio FM';
+        const displayGenre = st.genreLabel || st.tags || 'Música & Notícias';
+        const displayTrack = st.track || st.country || 'Transmissão Ao Vivo';
 
+        currentStationTitle.textContent = displayName;
+        currentStationGenre.innerHTML = '<i class="' + (st.icon || 'fa-solid fa-radio') + '"></i> ' + displayGenre;
+        currentTrackName.innerHTML = '<i class="fa-solid fa-headphones"></i> ' + displayTrack;
+
+        miniTitle.textContent = displayName;
+        miniGenre.textContent = displayGenre;
+
+        setStreamStatus('connecting', 'Conectando ao sinal...');
         playStream();
-        renderStations(document.querySelector('.pill-btn.active').dataset.filter);
+        updateMediaSession(st);
+        renderStations(currentStationList);
     }
 
     function playStream() {
-        audio.play().then(() => {
-            isPlaying = true;
-            updatePlayUI(true);
-            aveeEngine.attachAudio(audio);
-            aveeEngine.start();
-        }).catch(() => {
-            // Try fallback url
-            const st = STATIONS[currentIndex];
-            if (st.fallbackUrl && audio.src !== st.fallbackUrl) {
-                audio.src = st.fallbackUrl;
-                audio.play().then(() => {
-                    isPlaying = true;
-                    updatePlayUI(true);
-                    aveeEngine.attachAudio(audio);
-                    aveeEngine.start();
-                }).catch(e => console.warn('Stream play error:', e));
-            }
-        });
+        setStreamStatus('connecting', 'Sintonizando...');
+        
+        // Tenta iniciar áudio de forma segura
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                isPlaying = true;
+                setStreamStatus('live', 'NO AR (AO VIVO)');
+                updatePlayUI(true);
+                aveeEngine.start();
+            }).catch((err) => {
+                console.warn('Erro ao reproduzir stream:', err);
+                setStreamStatus('error', 'Tentando conectar...');
+                // Fallback inteligente
+                const st = currentStationList[currentIndex];
+                if (st && st.fallbackUrl && audio.src !== st.fallbackUrl) {
+                    audio.src = st.fallbackUrl;
+                    audio.play().then(() => {
+                        isPlaying = true;
+                        setStreamStatus('live', 'NO AR (REDE 2)');
+                        updatePlayUI(true);
+                        aveeEngine.start();
+                    }).catch(e => {
+                        setStreamStatus('error', 'Clique em Play para iniciar');
+                    });
+                } else {
+                    setStreamStatus('idle', 'Toque em Play para ouvir');
+                }
+            });
+        }
     }
 
     function pauseStream() {
         audio.pause();
         isPlaying = false;
+        setStreamStatus('idle', 'PAUSADO');
         updatePlayUI(false);
         aveeEngine.stop();
     }
 
     function togglePlay() {
-        if (isPlaying) pauseStream();
-        else {
-            if (!audio.src) loadAndPlayStation(0);
-            else playStream();
+        if (isPlaying) {
+            pauseStream();
+        } else {
+            if (!audio.src || audio.src === '') {
+                loadAndPlayStation(currentIndex);
+            } else {
+                playStream();
+            }
         }
     }
 
@@ -171,18 +214,20 @@
         miniPlayIcon.className = playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
         if (playing) {
             coverDisc.classList.add('spinning');
+            btnMainPlay.classList.add('playing');
         } else {
             coverDisc.classList.remove('spinning');
+            btnMainPlay.classList.remove('playing');
         }
     }
 
     function nextStation() {
-        const next = (currentIndex + 1) % STATIONS.length;
+        const next = (currentIndex + 1) % currentStationList.length;
         loadAndPlayStation(next);
     }
 
     function prevStation() {
-        const prev = (currentIndex - 1 + STATIONS.length) % STATIONS.length;
+        const prev = (currentIndex - 1 + currentStationList.length) % currentStationList.length;
         loadAndPlayStation(prev);
     }
 
@@ -211,141 +256,29 @@
         }
     }
 
-    // Event Listeners
-    btnMainPlay.addEventListener('click', togglePlay);
-    miniBtnPlay.addEventListener('click', togglePlay);
-    btnNextStation.addEventListener('click', nextStation);
-    miniBtnNext.addEventListener('click', nextStation);
-    btnPrevStation.addEventListener('click', prevStation);
-    miniBtnPrev.addEventListener('click', prevStation);
-
-    btnVolumeMute.addEventListener('click', toggleMute);
-    volumeSlider.addEventListener('input', (e) => setVolume(parseInt(e.target.value)));
-
-    // Genre Filters
-    genreFilters.addEventListener('click', (e) => {
-        const btn = e.target.closest('.pill-btn');
-        if (!btn) return;
-        genreFilters.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderStations(btn.dataset.filter);
+    // Listeners do Elemento Audio para feedback visual em tempo real
+    audio.addEventListener('playing', () => {
+        isPlaying = true;
+        setStreamStatus('live', 'NO AR (AO VIVO)');
+        updatePlayUI(true);
+        aveeEngine.start();
     });
 
-    // Spectrum Tabs Switcher
-    spectrumTabs.addEventListener('click', (e) => {
-        const tab = e.target.closest('.mode-tab');
-        if (!tab) return;
-        spectrumTabs.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        aveeEngine.mode = tab.dataset.mode;
+    audio.addEventListener('waiting', () => {
+        setStreamStatus('connecting', 'Carregando áudio...');
     });
 
-    // Palette Dots
-    document.querySelectorAll('.dot-btn').forEach(dot => {
-        dot.addEventListener('click', () => {
-            document.querySelectorAll('.dot-btn').forEach(d => d.classList.remove('active'));
-            dot.classList.add('active');
-            aveeEngine.palette = dot.dataset.palette;
-        });
+    audio.addEventListener('error', (e) => {
+        console.warn('Erro de transmissão no áudio:', e);
+        setStreamStatus('error', 'Sinal instável. Troque de estação.');
     });
 
-    // Bass Pulse Toggle
-    btnBassPulse.addEventListener('click', () => {
-        aveeEngine.bassPulseEnabled = !aveeEngine.bassPulseEnabled;
-        btnBassPulse.classList.toggle('active', aveeEngine.bassPulseEnabled);
-        btnBassPulse.textContent = aveeEngine.bassPulseEnabled ? 'LIGADO' : 'DESLIGADO';
-    });
-
-    // Fullscreen Toggle
-    btnFullscreen.addEventListener('click', () => {
-        const stage = document.getElementById('visualizer-studio');
-        if (!document.fullscreenElement) {
-            stage.requestFullscreen().catch(err => console.log(err));
-        } else {
-            document.exitFullscreen();
-        }
-    });
-
-    // Sticky Mini Player on Scroll
-    window.addEventListener('scroll', () => {
-        const hero = document.getElementById('hero-player');
-        const heroBottom = hero.getBoundingClientRect().bottom;
-        if (heroBottom < 0 && isPlaying) {
-            miniBarPlayer.classList.add('visible');
-        } else {
-            miniBarPlayer.classList.remove('visible');
-        }
-    });
-
-    // Song Request Form
-    songRequestForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = document.getElementById('reqName').value;
-        const song = document.getElementById('reqSong').value;
-        const recentList = document.getElementById('recentRequestsList');
-
-        const newReq = document.createElement('div');
-        newReq.className = 'req-item';
-        newReq.innerHTML = '<i class="fa-solid fa-comment-dots"></i> <strong>' + name + ':</strong> ' + song + ' 🎵';
-        recentList.prepend(newReq);
-
-        formFeedback.style.color = '#00f2fe';
-        formFeedback.textContent = '✅ Pedido enviado com sucesso para a programação da Studio FM!';
-        songRequestForm.reset();
-
-        setTimeout(() => { formFeedback.textContent = ''; }, 5000);
-    });
-
-    // Keyboard Shortcuts
-    document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-        if (e.code === 'ArrowRight') { e.preventDefault(); nextStation(); }
-        if (e.code === 'ArrowLeft') { e.preventDefault(); prevStation(); }
-        if (e.code === 'KeyM') { toggleMute(); }
-    });
-
-    
-    // PWA Service Worker Registration
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').then((reg) => {
-                console.log('Studio FM Service Worker Ativo:', reg.scope);
-            }).catch((err) => console.log('SW falhou:', err));
-        });
-    }
-
-    // PWA Install Prompt Handler
-    let deferredPrompt = null;
-    const btnInstallApp = document.getElementById('btnInstallApp');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        if (btnInstallApp) btnInstallApp.style.display = 'inline-flex';
-    });
-
-    if (btnInstallApp) {
-        btnInstallApp.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('App instalado pelo usuário!');
-                }
-                deferredPrompt = null;
-            } else {
-                alert('Para instalar o aplicativo:\n\n- No Chrome/Edge: Clique no ícone de instalar na barra de endereços (ou menu 3 pontos > Instalar Rádio Studio FM).\n- No Celular: Toque no menu do navegador e escolha "Adicionar à tela inicial" ou "Instalar aplicativo".');
-            }
-        });
-    }
-
-    // MediaSession API (Lockscreen audio controls & notifications)
+    // PWA MediaSession
     function updateMediaSession(st) {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
-                title: st.name,
-                artist: st.track || 'Rádio Studio FM Ao Vivo',
+                title: st.name || 'Studio FM',
+                artist: st.track || 'Rádio Ao Vivo 24h',
                 album: 'Mix Digital 2026',
                 artwork: [
                     { src: 'assets/icon.svg', sizes: '512x512', type: 'image/svg+xml' }
@@ -359,9 +292,189 @@
         }
     }
 
-    // Boot
+    // Integração da Busca Radio Browser API
+    async function searchRadioBrowser(query) {
+        if (!query || query.trim() === '') return;
+        searchStatusText.textContent = 'Buscando rádios na rede mundial...';
+        searchStatusText.style.display = 'block';
+
+        try {
+            const results = await RadioBrowserService.searchStations(query.trim(), 24);
+            searchStatusText.textContent = results.length + ' estações encontradas para "' + query + '"';
+            if (results.length > 0) {
+                currentStationList = results;
+                renderStations(results);
+            } else {
+                searchStatusText.textContent = 'Nenhuma rádio encontrada com esse nome. Buscando no Brasil...';
+                const brResults = await RadioBrowserService.getBrazilStations(20);
+                currentStationList = brResults;
+                renderStations(brResults);
+            }
+        } catch (err) {
+            console.warn('Busca falhou:', err);
+            searchStatusText.textContent = 'Modo offline: exibindo estações curadas.';
+            currentStationList = STATIONS;
+            renderStations(STATIONS);
+        }
+    }
+
+    async function loadCategory(cat) {
+        searchStatusText.style.display = 'block';
+        if (cat === 'all') {
+            searchStatusText.textContent = 'Exibindo estações de alta estabilidade';
+            currentStationList = STATIONS;
+            renderStations(STATIONS);
+            return;
+        }
+
+        if (cat === 'brasil') {
+            searchStatusText.textContent = 'Carregando mais de 25 rádios do Brasil via Radio Browser API...';
+            try {
+                const brStations = await RadioBrowserService.getBrazilStations(30);
+                currentStationList = brStations;
+                renderStations(brStations);
+                searchStatusText.textContent = 'Rádios mais ouvidas do Brasil carregadas!';
+            } catch (e) {
+                currentStationList = STATIONS.filter(s => s.country === 'Brasil');
+                renderStations(currentStationList);
+            }
+            return;
+        }
+
+        if (cat === 'world') {
+            searchStatusText.textContent = 'Carregando as rádios mais ouvidas do planeta...';
+            try {
+                const worldStations = await RadioBrowserService.getTopWorldStations(30);
+                currentStationList = worldStations;
+                renderStations(worldStations);
+                searchStatusText.textContent = 'Top Rádios Mundiais carregadas!';
+            } catch (e) {
+                renderStations(STATIONS);
+            }
+            return;
+        }
+
+        // Filtro local por gênero
+        searchStatusText.textContent = 'Filtrando gênero: ' + cat.toUpperCase();
+        const filtered = STATIONS.filter(s => s.genre === cat);
+        currentStationList = filtered.length > 0 ? filtered : STATIONS;
+        renderStations(currentStationList);
+    }
+
+    // Listeners dos Controles
+    btnMainPlay.addEventListener('click', togglePlay);
+    miniBtnPlay.addEventListener('click', togglePlay);
+    btnNextStation.addEventListener('click', nextStation);
+    miniBtnNext.addEventListener('click', nextStation);
+    btnPrevStation.addEventListener('click', prevStation);
+    miniBtnPrev.addEventListener('click', prevStation);
+
+    btnVolumeMute.addEventListener('click', toggleMute);
+    volumeSlider.addEventListener('input', (e) => setVolume(parseInt(e.target.value)));
+
+    // Filtros de Categorias
+    genreFilters.addEventListener('click', (e) => {
+        const btn = e.target.closest('.pill-btn');
+        if (!btn) return;
+        genreFilters.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadCategory(btn.dataset.filter);
+    });
+
+    // Barra de Busca
+    btnSearchRadio.addEventListener('click', () => {
+        searchRadioBrowser(radioSearchInput.value);
+    });
+    radioSearchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            searchRadioBrowser(radioSearchInput.value);
+        }
+    });
+
+    // Modos do Espectro Avee Player
+    spectrumTabs.addEventListener('click', (e) => {
+        const tab = e.target.closest('.mode-tab');
+        if (!tab) return;
+        spectrumTabs.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        aveeEngine.mode = tab.dataset.mode;
+    });
+
+    // Seletor de Paleta Neon
+    document.querySelectorAll('.dot-btn').forEach(dot => {
+        dot.addEventListener('click', () => {
+            document.querySelectorAll('.dot-btn').forEach(d => d.classList.remove('active'));
+            dot.classList.add('active');
+            aveeEngine.palette = dot.dataset.palette;
+        });
+    });
+
+    // Bass Pulse
+    btnBassPulse.addEventListener('click', () => {
+        aveeEngine.bassPulseEnabled = !aveeEngine.bassPulseEnabled;
+        btnBassPulse.classList.toggle('active', aveeEngine.bassPulseEnabled);
+        btnBassPulse.textContent = aveeEngine.bassPulseEnabled ? 'LIGADO' : 'DESLIGADO';
+    });
+
+    // Tela Cheia
+    btnFullscreen.addEventListener('click', () => {
+        const stage = document.getElementById('visualizer-studio');
+        if (!document.fullscreenElement) {
+            stage.requestFullscreen().catch(err => console.log(err));
+        } else {
+            document.exitFullscreen();
+        }
+    });
+
+    // Mini Player Fixo ao rolar
+    window.addEventListener('scroll', () => {
+        const hero = document.getElementById('hero-player');
+        if (hero) {
+            const heroBottom = hero.getBoundingClientRect().bottom;
+            if (heroBottom < 0 && isPlaying) {
+                miniBarPlayer.classList.add('visible');
+            } else {
+                miniBarPlayer.classList.remove('visible');
+            }
+        }
+    });
+
+    // PWA Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(e => console.log(e));
+        });
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt = null;
+    const btnInstallApp = document.getElementById('btnInstallApp');
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (btnInstallApp) btnInstallApp.style.display = 'inline-flex';
+    });
+    if (btnInstallApp) {
+        btnInstallApp.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt = null;
+            } else {
+                alert('Para instalar:\nNo Chrome/Edge: Clique no ícone de instalar na barra de endereços.\nNo Celular: Toque em "Adicionar à tela inicial".');
+            }
+        });
+    }
+
+    // Inicialização sem autoplay forçado (em conformidade com navegadores modernos)
     initVisualizer();
-    renderStations();
-    loadAndPlayStation(0);
+    renderStations(STATIONS);
+    
+    // Configura os dados iniciais no player sem tocar
+    const initialStation = STATIONS[0];
+    audio.src = initialStation.url;
+    currentStationTitle.textContent = initialStation.name;
+    currentStationGenre.innerHTML = '<i class="' + initialStation.icon + '"></i> ' + initialStation.genreLabel;
+    currentTrackName.innerHTML = '<i class="fa-solid fa-headphones"></i> ' + initialStation.track;
+    setStreamStatus('idle', 'Toque em Play para sintonizar');
 
 })();
