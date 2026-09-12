@@ -54,6 +54,11 @@ body {
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+html, body {
+    max-width: 100%;
+    overflow-x: clip;
+}
+
 /* Ambient Backdrop Glow */
 .ambient-glow {
     position: fixed;
@@ -266,6 +271,10 @@ body {
     grid-template-columns: 440px 1fr;
     gap: 28px;
     align-items: stretch;
+}
+
+.hero-grid > * {
+    min-width: 0;
 }
 
 /* Glass Panels */
@@ -1944,5 +1953,29 @@ body.has-mini-player .floating-fab-container {
     body.native-app .panel-header,
     body.native-app .audio-fx-bar {
         min-width: 0;
+    }
+
+    body.native-app .panel-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    body.native-app .station-meta-block {
+        gap: 14px;
+    }
+
+    body.native-app .audio-fx-bar {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    body.native-app .stage-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    body.native-app .spectrum-tabs {
+        max-width: 100%;
+        overflow-x: auto;
     }
 }

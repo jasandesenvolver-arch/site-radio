@@ -78,7 +78,7 @@ public class MainActivity extends BridgeActivity {
     private void clearLegacyWebCache() {
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             WebView webView = getBridge().getWebView();
-            String script = "(async()=>{const key='studio-fm-native-cache-v2026.10';"
+            String script = "(async()=>{const key='studio-fm-native-cache-v2026.11';"
                 + "if(localStorage.getItem(key))return;"
                 + "const registrations=await navigator.serviceWorker.getRegistrations();"
                 + "await Promise.all(registrations.map(r=>r.unregister()));"
