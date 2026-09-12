@@ -1400,6 +1400,46 @@ body {
     .request-glass-box { padding: 22px 18px; }
 }
 
+/* Ajuste final exclusivo do APK. Precisa ficar no fim do arquivo porque as
+   regras responsivas do site vêm antes e não conhecem a barra do Android. */
+@media (max-width: 768px) {
+    body.native-app {
+        padding-top: 112px;
+    }
+
+    body.native-app .navbar {
+        position: fixed;
+        inset: 0 0 auto;
+        min-height: 112px;
+        padding: 38px 0 12px;
+        z-index: 5000;
+        background: rgba(7, 9, 19, 0.96);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    body.native-app .mini-station-info,
+    body.native-app .mini-texts {
+        min-width: 0;
+    }
+
+    body.native-app .mini-station-info {
+        flex: 1 1 auto;
+        overflow: hidden;
+    }
+
+    body.native-app .mini-title,
+    body.native-app .mini-genre {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    body.native-app .mini-controls {
+        flex: 0 0 auto;
+    }
+}
+
 /* Em Android edge-to-edge, o fundo do aplicativo continua atrás das barras
    do sistema e o cabeçalho respeita a área segura. */
 @supports (padding: env(safe-area-inset-top)) {
@@ -1853,5 +1893,56 @@ body.has-mini-player .floating-fab-container {
        compartilhamento baixo evita cobrir os controles do equalizador. */
     body.has-mini-player .floating-fab-container {
         bottom: 8px;
+    }
+}
+
+/* Sobrepõe regras anteriores quando o conteúdo roda no WebView Android. */
+@media (max-width: 768px) {
+    body.native-app { padding-top: 112px; }
+    body.native-app .navbar {
+        position: fixed;
+        inset: 0 0 auto;
+        min-height: 112px;
+        padding: 38px 0 12px;
+        z-index: 5000;
+        background: rgba(7, 9, 19, 0.96);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    }
+    body.native-app .mini-station-info,
+    body.native-app .mini-texts { min-width: 0; }
+    body.native-app .mini-station-info { flex: 1 1 auto; overflow: hidden; }
+    body.native-app .mini-title,
+    body.native-app .mini-genre {
+        max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    body.native-app .mini-controls { flex: 0 0 auto; }
+}
+
+/* Alguns WebViews Android informam a largura física (1080px) como viewport.
+   Neste caso as media queries por largura não entram, embora o celular esteja
+   em retrato. Esta regra usa a orientação real e mantém o app em uma coluna. */
+@media (orientation: portrait) {
+    body.native-app .container {
+        width: 100%;
+        max-width: none;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    body.native-app .hero-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+
+    body.native-app .player-panel-glass,
+    body.native-app .avee-stage-glass {
+        min-width: 0;
+        padding: 20px;
+    }
+
+    body.native-app .station-meta-block,
+    body.native-app .panel-header,
+    body.native-app .audio-fx-bar {
+        min-width: 0;
     }
 }
