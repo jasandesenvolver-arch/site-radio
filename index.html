@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Rádio Studio FM & Mix Digital - A melhor experiência de Web Rádio ao vivo com Espectros Visuais estilo Avee Player 2026.">
     <title>Rádio Studio FM | Web Rádio ao Vivo & Avee Visualizer 2026</title>
     
@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- Main Style -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=2026.10">
     <!-- PWA & Mobile App Support -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#070913">
@@ -50,12 +50,13 @@
                 <a href="#stations-section" class="nav-item"><i class="fa-solid fa-radio"></i> Estações</a>
                 <a href="#visualizer-studio" class="nav-item"><i class="fa-solid fa-wave-square"></i> Avee Studio</a>
                 <a href="#schedule-section" class="nav-item"><i class="fa-solid fa-calendar-days"></i> Programação</a>
+                <a href="#podcast-section" class="nav-item"><i class="fa-solid fa-podcast"></i> Podcast</a>
                 <a href="#requests-section" class="nav-item"><i class="fa-solid fa-heart"></i> Pedidos</a>
             </nav>
 
                         <div class="nav-actions">
-                <button class="btn-install-app" id="btnInstallApp" title="Instalar Aplicativo no Celular/PC">
-                    <i class="fa-solid fa-download"></i> <span>Instalar App</span>
+                <button class="btn-install-app" id="btnInstallApp" title="Compartilhar aplicativo">
+                    <i class="fa-solid fa-share-nodes"></i> <span>Compartilhar</span>
                 </button>
                 <button class="btn-theme-toggle" id="btnFullscreen" title="Tela Cheia do Avee Visualizer">
                     <i class="fa-solid fa-expand"></i>
@@ -173,6 +174,9 @@
                                 <button class="mode-tab" data-mode="stardust" title="Constelação de Partículas">
                                     <i class="fa-solid fa-atom"></i> Stardust
                                 </button>
+                                <button class="mode-tab mode-random" id="btnRandomSpectrum" type="button" aria-pressed="false" title="Alternar efeitos automaticamente">
+                                    <i class="fa-solid fa-shuffle"></i> Aleatório
+                                </button>
                             </div>
                         </div>
 
@@ -208,7 +212,7 @@
                                 </div>
                             </div>
                             <div class="stage-hint">
-                                <i class="fa-solid fa-circle-info"></i> Toque para alternar efeitos visuais Avee
+                            <i class="fa-solid fa-hand-pointer"></i> Toque no espectro para mudar o efeito
                             </div>
                         </div>
                     </div>
@@ -306,6 +310,35 @@
             </div>
         </section>
 
+        <section class="podcast-section" id="podcast-section">
+            <div class="container">
+                <div class="section-title-wrap">
+                    <div class="subtitle-tag"><i class="fa-solid fa-podcast"></i> PODCAST STUDIO FM</div>
+                    <h2 class="section-heading">Audiobooks <span class="gradient-text">gratuitos</span></h2>
+                    <p class="section-sub">Clássicos em domínio público para ouvir gratuitamente. Cada título informa a fonte da gravação.</p>
+                </div>
+                <div class="podcast-grid">
+                    <article class="podcast-card featured">
+                        <div class="podcast-art"><i class="fa-solid fa-microphone-lines"></i></div>
+                        <div>
+                            <span class="podcast-label">DOMÍNIO PÚBLICO</span>
+                            <h3>Memórias Póstumas de Brás Cubas</h3>
+                            <p>Machado de Assis, narrado por voluntários da LibriVox.</p>
+                            <a class="podcast-link" href="https://librivox.org/memorias-postumas-de-bras-cubas-by-joaquim-maria-machado-de-assis/" target="_blank" rel="noopener noreferrer">Ouvir grátis <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                        </div>
+                    </article>
+                    <article class="podcast-card">
+                        <div class="podcast-number">01</div>
+                        <div><span class="podcast-label">CLÁSSICO UNIVERSAL</span><h3>As Aventuras de Sherlock Holmes</h3><p>Contos de Arthur Conan Doyle em áudio gratuito.</p><a class="podcast-link" href="https://librivox.org/the-adventures-of-sherlock-holmes-version-5-by-sir-arthur-conan-doyle/" target="_blank" rel="noopener noreferrer">Ouvir grátis <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div>
+                    </article>
+                    <article class="podcast-card">
+                        <div class="podcast-number">02</div>
+                        <div><span class="podcast-label">EM CURADORIA</span><h3>Mais clássicos brasileiros</h3><p>Novos títulos serão adicionados após validação de domínio público e da licença da narração.</p></div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
         <!-- Song Requests & Live Interaction -->
         <section class="requests-section" id="requests-section">
             <div class="container">
@@ -390,35 +423,10 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="js/stations.js"></script>
-    <script src="js/visualizer.js"></script>
-    <script src="js/player.js"></script>
-
-    <!-- Floating Action Speed Dial (Baixar App & Compartilhar) -->
-    <div class="floating-fab-container" id="floatingFabContainer">
-        <div class="fab-menu" id="fabMenu">
-            <button class="fab-item" id="fabInstallApp" title="Baixar / Instalar Aplicativo">
-                <i class="fa-solid fa-download"></i>
-                <span class="fab-tooltip">Instalar App</span>
-            </button>
-            <button class="fab-item" id="fabShareWhatsapp" title="Compartilhar no WhatsApp">
-                <i class="fa-brands fa-whatsapp"></i>
-                <span class="fab-tooltip">WhatsApp</span>
-            </button>
-            <button class="fab-item" id="fabShareNative" title="Compartilhar Rádio">
-                <i class="fa-solid fa-share-nodes"></i>
-                <span class="fab-tooltip">Compartilhar</span>
-            </button>
-            <button class="fab-item" id="fabCopyLink" title="Copiar Link da Rádio">
-                <i class="fa-solid fa-link"></i>
-                <span class="fab-tooltip">Copiar Link</span>
-            </button>
-        </div>
-        <button class="fab-main-btn" id="fabMainBtn" aria-label="Menu Flutuante">
-            <i class="fa-solid fa-plus" id="fabIcon"></i>
-            <div class="fab-pulse-ring"></div>
-        </button>
-    </div>
+    <script src="js/stations.js?v=2026.10"></script>
+    <script src="js/visualizer.js?v=2026.10"></script>
+    <script src="js/player.js?v=2026.10"></script>
+    <script src="js/admob.js?v=2026.10"></script>
 
     <!-- Toast Notification -->
     <div class="app-toast" id="appToast">

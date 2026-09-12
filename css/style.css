@@ -51,6 +51,7 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Ambient Backdrop Glow */
@@ -641,6 +642,17 @@ body {
     padding: 4px;
     border-radius: var(--radius-full);
     border: 1px solid var(--bg-glass-border);
+}
+
+.mode-random.active {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    color: #fff;
+    box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.canvas-viewport {
+    cursor: pointer;
+    touch-action: manipulation;
 }
 
 .mode-tab {
@@ -1366,7 +1378,110 @@ body {
     .spectrum-tabs {
         overflow-x: auto;
     }
+
+    html, body { overflow-x: hidden; }
+    .container { width: min(100% - 28px, 1180px); }
+    .navbar { padding: 10px 0; }
+    .logo-info { display: none; }
+    .nav-actions { gap: 8px; }
+    .btn-install-app { padding: 9px 11px; font-size: 12px; }
+    .btn-install-app span { display: none; }
+    .live-pill { display: none; }
+    .hero-section, .stations-section, .schedule-section, .requests-section, .podcast-section { padding: 52px 0; }
+    .section-heading { font-size: clamp(26px, 8vw, 34px); line-height: 1.08; }
+    .section-sub { font-size: 15px; line-height: 1.55; }
+    .search-input-box { padding: 6px 7px 6px 13px; border-radius: 18px; }
+    .search-input-box input { min-width: 0; font-size: 13px; }
+    .btn-search-trigger { padding: 10px 13px; transform: none; }
+    .filter-pills { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; justify-content: flex-start; }
+    .pill-btn { white-space: nowrap; }
+    .station-card { min-width: 0; }
+    .schedule-card { align-items: flex-start; }
+    .request-glass-box { padding: 22px 18px; }
 }
+
+/* Em Android edge-to-edge, o fundo do aplicativo continua atrás das barras
+   do sistema e o cabeçalho respeita a área segura. */
+@supports (padding: env(safe-area-inset-top)) {
+    .navbar { padding-top: calc(16px + env(safe-area-inset-top)); }
+
+    @media (max-width: 768px) {
+        .navbar { padding-top: calc(10px + env(safe-area-inset-top)); }
+    }
+}
+
+/* O WebView de alguns aparelhos Android não informa safe-area-inset-top.
+   Mantemos uma margem real para que cabeçalho e listas não passem por trás
+   dos ícones da barra de status. */
+body.native-app {
+    padding-top: 32px;
+}
+
+body.native-app .navbar {
+    top: 0;
+    z-index: 1000;
+}
+
+body.native-app .mini-texts {
+    min-width: 0;
+}
+
+body.native-app .mini-title,
+body.native-app .mini-genre {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Em paisagem, preserva o acesso ao compartilhamento sem apertar a navegação. */
+@media (max-width: 1100px) and (orientation: landscape) {
+    .navbar {
+        min-height: 74px;
+        padding: 10px 18px;
+        gap: 14px;
+    }
+
+    .brand-tagline,
+    .nav-item:nth-child(n + 4) {
+        display: none;
+    }
+
+    .nav-menu {
+        gap: 8px;
+        flex: 1;
+        justify-content: center;
+    }
+
+    .nav-item {
+        font-size: 14px;
+        padding: 10px 12px;
+    }
+
+    .nav-actions .btn-install-app {
+        width: 48px;
+        min-width: 48px;
+        height: 46px;
+        padding: 0;
+        border-radius: 14px;
+    }
+
+    .nav-actions .btn-install-app span {
+        display: none;
+    }
+}
+
+.podcast-section { padding: 110px 0; background: linear-gradient(180deg, rgba(11, 15, 25, 0.3), rgba(18, 22, 40, 0.5)); }
+.podcast-grid { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 18px; }
+.podcast-card { display: flex; gap: 16px; align-items: center; padding: 22px; border: 1px solid var(--bg-glass-border); border-radius: 20px; background: rgba(18, 22, 40, 0.72); }
+.podcast-card.featured { background: linear-gradient(135deg, rgba(157, 78, 221, 0.25), rgba(0, 242, 254, 0.12)); }
+.podcast-card h3 { margin: 7px 0; font-size: 18px; }
+.podcast-card p { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+.podcast-link { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; color: var(--accent-secondary); font-size: 13px; font-weight: 800; text-decoration: none; }
+.podcast-link:hover { color: #fff; }
+.podcast-art, .podcast-number { flex: 0 0 58px; width: 58px; height: 58px; display: grid; place-items: center; border-radius: 16px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color: #070913; font-size: 24px; font-weight: 800; }
+.podcast-label { color: var(--accent-secondary); font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+@media (max-width: 768px) { .podcast-grid { grid-template-columns: 1fr; gap: 12px; } .podcast-card { padding: 18px; } }
 
 /* PWA Install Button */
 .btn-install-app {
@@ -1544,6 +1659,11 @@ body {
     gap: 14px;
 }
 
+/* Mantém o compartilhamento abaixo dos controles, mesmo com o mini player. */
+body.has-mini-player .floating-fab-container {
+    bottom: 32px;
+}
+
 .fab-main-btn {
     width: 60px;
     height: 60px;
@@ -1686,8 +1806,52 @@ body {
 }
 
 @media (max-width: 768px) {
+    /* Acabamento mais limpo para uso imersivo no celular. */
+    .navbar {
+        min-height: 72px;
+        padding: 10px 0;
+        background: rgba(7, 9, 19, 0.84);
+        backdrop-filter: blur(24px) saturate(150%);
+        -webkit-backdrop-filter: blur(24px) saturate(150%);
+    }
+
+    /* Cabeçalho com leitura de aplicativo: marca, compartilhar e menu.
+       A tela cheia permanece disponível no menu e não aperta a barra. */
+    .nav-content { min-height: 52px; }
+    .brand-logo { gap: 10px; }
+    .logo-emblem { width: 48px; height: 48px; border-radius: 15px; }
+    .nav-actions { margin-left: auto; gap: 10px; }
+    #btnFullscreen { display: none; }
+    .mobile-toggle { width: 44px; height: 44px; border-radius: 14px; background: rgba(255,255,255,.06); }
+
+    .nav-actions .btn-install-app {
+        min-width: 52px;
+        height: 48px;
+        padding: 0 16px;
+        border-radius: 16px;
+    }
+
+    .hero-panel,
+    .player-card,
+    .avee-panel {
+        border-color: rgba(148, 163, 184, 0.18);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+    }
+
+    .main-player {
+        padding-bottom: 28px;
+    }
+
     .floating-fab-container {
-        bottom: 84px;
+        /* O WebView já termina acima da navegação Android. Não somar a
+           safe area aqui, pois ela elevaria o botão sobre os controles. */
+        bottom: 8px;
         right: 20px;
+    }
+
+    /* No celular o mini player fica na parte inferior da página; manter o
+       compartilhamento baixo evita cobrir os controles do equalizador. */
+    body.has-mini-player .floating-fab-container {
+        bottom: 8px;
     }
 }

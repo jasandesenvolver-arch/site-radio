@@ -16,6 +16,59 @@
     const audio = new Audio();
     audio.preload = 'none';
     audio.volume = currentVolume;
+    let backgroundRadioActive = false;
+
+    // No Android o WebView pode pausar o áudio ao bloquear a tela. Quando isso
+    // acontece, transferimos a transmissão para um serviço nativo em primeiro
+    // plano, que mantém a rádio tocando fora do aplicativo.
+    function backgroundRadioPlugin() {
+        return window.Capacitor?.Plugins?.BackgroundRadio || null;
+    }
+
+    function armBackgroundRadio() {
+        const plugin = backgroundRadioPlugin();
+        const station = currentStationList[currentIndex];
+        const streamUrl = audio.currentSrc || audio.src;
+        if (!plugin || !station || !streamUrl) return;
+        plugin.arm({ url: streamUrl, title: station.name || 'Rádio Studio FM' })
+            .catch((error) => console.warn('Não foi possível preparar o áudio em segundo plano:', error));
+    }
+
+    function disarmBackgroundRadio() {
+        backgroundRadioPlugin()?.disarm()
+            .catch((error) => console.warn('Não foi possível encerrar o áudio em segundo plano:', error));
+    }
+
+    async function startBackgroundRadio() {
+        const plugin = backgroundRadioPlugin();
+        const station = currentStationList[currentIndex];
+        const streamUrl = audio.currentSrc || audio.src;
+        if (!plugin || !station || !streamUrl || !isPlaying || backgroundRadioActive) return;
+
+        try {
+            await plugin.start({ url: streamUrl, title: station.name || 'Rádio Studio FM' });
+            backgroundRadioActive = true;
+            audio.pause();
+        } catch (error) {
+            console.warn('Não foi possível iniciar o áudio em segundo plano:', error);
+        }
+    }
+
+    async function stopBackgroundRadio({ resumeWebAudio = false } = {}) {
+        const plugin = backgroundRadioPlugin();
+        if (!backgroundRadioActive) return;
+        backgroundRadioActive = false;
+
+        try {
+            await plugin?.stop();
+        } catch (error) {
+            console.warn('Não foi possível encerrar o áudio em segundo plano:', error);
+        }
+
+        if (resumeWebAudio && isPlaying) {
+            audio.play().catch((error) => console.warn('Não foi possível retomar o áudio:', error));
+        }
+    }
 
     // DOM Elements
     const btnMainPlay = document.getElementById('btnMainPlay');
@@ -44,12 +97,28 @@
     const miniBtnNext = document.getElementById('miniBtnNext');
 
     const spectrumTabs = document.getElementById('spectrumTabs');
+    const canvasViewport = document.getElementById('canvasViewport');
+    const btnRandomSpectrum = document.getElementById('btnRandomSpectrum');
     const btnFullscreen = document.getElementById('btnFullscreen');
     const btnBassPulse = document.getElementById('btnBassPulse');
     const radioSearchInput = document.getElementById('radioSearchInput');
     const btnSearchRadio = document.getElementById('btnSearchRadio');
     const searchStatusText = document.getElementById('searchStatusText');
     const genreFilters = document.getElementById('genreFilters');
+    const songRequestForm = document.getElementById('songRequestForm');
+    const recentRequestsList = document.getElementById('recentRequestsList');
+    const formFeedback = document.getElementById('formFeedback');
+    const headerLiveText = document.querySelector('.live-text');
+
+    function createIcon(className) {
+        const icon = document.createElement('i');
+        icon.className = /^fa(?:-[a-z0-9]+)+$/i.test(className || '') ? className : 'fa-solid fa-radio';
+        return icon;
+    }
+
+    function safeColor(value, fallback) {
+        return /^#[0-9a-f]{3,8}$/i.test(value || '') ? value : fallback;
+    }
 
     // Inicializa motor Avee Player
     function initVisualizer() {
@@ -60,7 +129,8 @@
     function setStreamStatus(status, text) {
         if (!streamStatusBadge) return;
         streamStatusBadge.className = 'status-indicator ' + status;
-        streamStatusBadge.innerHTML = '<span class="status-dot"></span> ' + text;
+        streamStatusBadge.replaceChildren(Object.assign(document.createElement('span'), { className: 'status-dot' }), document.createTextNode(' ' + text));
+        if (headerLiveText) headerLiveText.textContent = status === 'live' ? 'NO AR' : status === 'connecting' ? 'CONECTANDO' : 'PAUSADO';
     }
 
     // Renderiza os Cards de Rádios na Grade
@@ -74,8 +144,8 @@
         list.forEach((st, idx) => {
             const isCurrent = idx === currentIndex && currentStationList === list;
             const isFavorited = localStorage.getItem('fav_' + (st.id || st.stationuuid)) === 'true';
-            const color = st.color || '#9d4edd';
-            const colorEnd = st.colorEnd || '#00f2fe';
+            const color = safeColor(st.color, '#9d4edd');
+            const colorEnd = safeColor(st.colorEnd, '#00f2fe');
             const genreName = st.genreLabel || st.tags || 'ONLINE FM';
             const iconClass = st.icon || 'fa-solid fa-radio';
             const stationTitle = st.name || 'Rádio Ao Vivo';
@@ -85,29 +155,41 @@
             card.className = 'station-card' + (isCurrent && isPlaying ? ' playing' : '');
             card.dataset.index = idx;
 
-            card.innerHTML = `
-                <div class="card-top">
-                    <div class="card-icon-wrap" style="background: linear-gradient(135deg, ${color}, ${colorEnd});">
-                        <i class="${iconClass}"></i>
-                    </div>
-                    <button class="card-fav-btn ${isFavorited ? 'favorited' : ''}" title="Favoritar">
-                        <i class="fa-${isFavorited ? 'solid' : 'regular'} fa-heart"></i>
-                    </button>
-                </div>
-                <div class="card-info">
-                    <div class="card-genre">${genreName.substring(0, 24)}</div>
-                    <h3>${stationTitle}</h3>
-                    <p class="card-desc">${stationDesc.substring(0, 100)}</p>
-                </div>
-                <div class="card-footer-action">
-                    <span class="card-play-label">
-                        <i class="fa-solid fa-tower-broadcast"></i> ${st.bitrate ? st.bitrate + ' kbps' : 'Ao Vivo'}
-                    </span>
-                    <div class="card-play-btn-circle">
-                        <i class="fa-solid ${isCurrent && isPlaying ? 'fa-pause' : 'fa-play'}"></i>
-                    </div>
-                </div>
-            `;
+            const cardTop = document.createElement('div');
+            cardTop.className = 'card-top';
+            const iconWrap = document.createElement('div');
+            iconWrap.className = 'card-icon-wrap';
+            iconWrap.style.background = `linear-gradient(135deg, ${color}, ${colorEnd})`;
+            iconWrap.appendChild(createIcon(iconClass));
+            const favBtn = document.createElement('button');
+            favBtn.className = 'card-fav-btn' + (isFavorited ? ' favorited' : '');
+            favBtn.type = 'button';
+            favBtn.title = 'Favoritar';
+            favBtn.appendChild(createIcon('fa-' + (isFavorited ? 'solid' : 'regular') + ' fa-heart'));
+            cardTop.append(iconWrap, favBtn);
+
+            const cardInfo = document.createElement('div');
+            cardInfo.className = 'card-info';
+            const genre = document.createElement('div');
+            genre.className = 'card-genre';
+            genre.textContent = genreName.substring(0, 24);
+            const title = document.createElement('h3');
+            title.textContent = stationTitle;
+            const description = document.createElement('p');
+            description.className = 'card-desc';
+            description.textContent = stationDesc.substring(0, 100);
+            cardInfo.append(genre, title, description);
+
+            const footer = document.createElement('div');
+            footer.className = 'card-footer-action';
+            const label = document.createElement('span');
+            label.className = 'card-play-label';
+            label.append(createIcon('fa-solid fa-tower-broadcast'), document.createTextNode(' ' + (st.bitrate ? st.bitrate + ' kbps' : 'Ao Vivo')));
+            const playButton = document.createElement('div');
+            playButton.className = 'card-play-btn-circle';
+            playButton.appendChild(createIcon('fa-solid ' + (isCurrent && isPlaying ? 'fa-pause' : 'fa-play')));
+            footer.append(label, playButton);
+            card.append(cardTop, cardInfo, footer);
 
             // Clique no card para tocar
             card.addEventListener('click', (e) => {
@@ -117,7 +199,6 @@
             });
 
             // Favoritar
-            const favBtn = card.querySelector('.card-fav-btn');
             favBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const key = 'fav_' + (st.id || st.stationuuid);
@@ -144,11 +225,13 @@
         const displayTrack = st.track || st.country || 'Transmissão Ao Vivo';
 
         currentStationTitle.textContent = displayName;
-        currentStationGenre.innerHTML = '<i class="' + (st.icon || 'fa-solid fa-radio') + '"></i> ' + displayGenre;
-        currentTrackName.innerHTML = '<i class="fa-solid fa-headphones"></i> ' + displayTrack;
+        currentStationGenre.replaceChildren(createIcon(st.icon || 'fa-solid fa-radio'), document.createTextNode(' ' + displayGenre));
+        currentTrackName.replaceChildren(createIcon('fa-solid fa-headphones'), document.createTextNode(' ' + displayTrack));
 
         miniTitle.textContent = displayName;
         miniGenre.textContent = displayGenre;
+        miniBarPlayer.classList.add('visible');
+        document.body.classList.add('has-mini-player');
 
         setStreamStatus('connecting', 'Conectando ao sinal...');
         playStream();
@@ -158,6 +241,8 @@
 
     function playStream() {
         setStreamStatus('connecting', 'Sintonizando...');
+        miniBarPlayer.classList.add('visible');
+        document.body.classList.add('has-mini-player');
         
         // Tenta iniciar áudio de forma segura
         const playPromise = audio.play();
@@ -191,6 +276,8 @@
 
     function pauseStream() {
         audio.pause();
+        stopBackgroundRadio();
+        disarmBackgroundRadio();
         isPlaying = false;
         setStreamStatus('idle', 'PAUSADO');
         updatePlayUI(false);
@@ -259,6 +346,7 @@
     // Listeners do Elemento Audio para feedback visual em tempo real
     audio.addEventListener('playing', () => {
         isPlaying = true;
+        armBackgroundRadio();
         setStreamStatus('live', 'NO AR (AO VIVO)');
         updatePlayUI(true);
         aveeEngine.start();
@@ -271,6 +359,14 @@
     audio.addEventListener('error', (e) => {
         console.warn('Erro de transmissão no áudio:', e);
         setStreamStatus('error', 'Sinal instável. Troque de estação.');
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            startBackgroundRadio();
+        } else {
+            stopBackgroundRadio({ resumeWebAudio: true });
+        }
     });
 
     // PWA MediaSession
@@ -391,14 +487,82 @@
         }
     });
 
+    // Sem backend neste projeto, os pedidos ficam no mural local do dispositivo.
+    function addRequestToWall(request) {
+        const item = document.createElement('div');
+        item.className = 'req-item';
+        item.append(createIcon('fa-solid fa-comment-dots'));
+        const author = document.createElement('strong');
+        author.textContent = ' ' + request.name + ':';
+        item.append(author, document.createTextNode(' ' + request.song + (request.message ? ' — ' + request.message : '')));
+        recentRequestsList.prepend(item);
+    }
+
+    if (songRequestForm && recentRequestsList && formFeedback) {
+        songRequestForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const name = document.getElementById('reqName').value.trim();
+            const song = document.getElementById('reqSong').value.trim();
+            const message = document.getElementById('reqMessage').value.trim();
+            if (!name || !song) return;
+            const request = { name: name.slice(0, 80), song: song.slice(0, 120), message: message.slice(0, 240) };
+            const saved = JSON.parse(localStorage.getItem('studioFmRequests') || '[]');
+            saved.push(request);
+            localStorage.setItem('studioFmRequests', JSON.stringify(saved.slice(-10)));
+            addRequestToWall(request);
+            songRequestForm.reset();
+            formFeedback.textContent = 'Pedido recebido no mural deste dispositivo.';
+        });
+    }
+
     // Modos do Espectro Avee Player
+    const spectrumModes = ['circular', 'cyberbars', 'liquidwave', 'stardust'];
+    let randomSpectrumTimer = null;
+
+    function setSpectrumMode(mode, announce = false) {
+        if (!spectrumModes.includes(mode)) return;
+        spectrumTabs.querySelectorAll('.mode-tab[data-mode]').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.mode === mode);
+        });
+        aveeEngine.mode = mode;
+        if (announce) {
+            const label = spectrumTabs.querySelector(`.mode-tab[data-mode="${mode}"]`)?.textContent.trim() || mode;
+            showToast(`✨ Espectro: ${label}`);
+        }
+    }
+
+    function cycleSpectrum() {
+        const current = spectrumModes.indexOf(aveeEngine.mode);
+        setSpectrumMode(spectrumModes[(current + 1) % spectrumModes.length], true);
+    }
+
     spectrumTabs.addEventListener('click', (e) => {
         const tab = e.target.closest('.mode-tab');
-        if (!tab) return;
-        spectrumTabs.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        aveeEngine.mode = tab.dataset.mode;
+        if (!tab || !tab.dataset.mode) return;
+        setSpectrumMode(tab.dataset.mode);
     });
+
+    if (canvasViewport) {
+        canvasViewport.addEventListener('click', (e) => {
+            if (!e.target.closest('button')) cycleSpectrum();
+        });
+    }
+
+    if (btnRandomSpectrum) {
+        btnRandomSpectrum.addEventListener('click', () => {
+            const enabled = !randomSpectrumTimer;
+            if (enabled) {
+                cycleSpectrum();
+                randomSpectrumTimer = window.setInterval(cycleSpectrum, 10000);
+            } else {
+                window.clearInterval(randomSpectrumTimer);
+                randomSpectrumTimer = null;
+            }
+            btnRandomSpectrum.classList.toggle('active', enabled);
+            btnRandomSpectrum.setAttribute('aria-pressed', String(enabled));
+            showToast(enabled ? '🎲 Efeitos aleatórios ativados' : '🎨 Efeitos aleatórios desativados');
+        });
+    }
 
     // Seletor de Paleta Neon
     document.querySelectorAll('.dot-btn').forEach(dot => {
@@ -426,43 +590,30 @@
         }
     });
 
-    // Mini Player Fixo ao rolar
-    window.addEventListener('scroll', () => {
-        const hero = document.getElementById('hero-player');
-        if (hero) {
-            const heroBottom = hero.getBoundingClientRect().bottom;
-            if (heroBottom < 0 && isPlaying) {
-                miniBarPlayer.classList.add('visible');
-            } else {
-                miniBarPlayer.classList.remove('visible');
-            }
-        }
-    });
+    // O mini player permanece disponível depois que o usuário escolhe uma rádio.
 
-    // PWA Service Worker
-    if ('serviceWorker' in navigator) {
+    // O APK já carrega todos os arquivos dentro dele. Service Worker só é
+    // necessário no site; dentro do Android ele podia reabrir uma interface
+    // antiga depois de uma atualização do aplicativo.
+    const isNativeApp = window.Capacitor?.isNativePlatform?.() === true;
+    if (isNativeApp) {
+        document.body.classList.add('native-app');
+    }
+    if ('serviceWorker' in navigator && isNativeApp) {
+        navigator.serviceWorker.getRegistrations()
+            .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+            .then(() => window.caches ? window.caches.keys() : [])
+            .then((keys) => Promise.all(keys.map((key) => window.caches.delete(key))))
+            .catch((error) => console.warn('Não foi possível limpar o cache antigo:', error));
+    } else if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js').catch(e => console.log(e));
         });
     }
 
-    // PWA Install Prompt
-    let deferredPrompt = null;
     const btnInstallApp = document.getElementById('btnInstallApp');
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        if (btnInstallApp) btnInstallApp.style.display = 'inline-flex';
-    });
     if (btnInstallApp) {
-        btnInstallApp.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt = null;
-            } else {
-                alert('Para instalar:\nNo Chrome/Edge: Clique no ícone de instalar na barra de endereços.\nNo Celular: Toque em "Adicionar à tela inicial".');
-            }
-        });
+        btnInstallApp.addEventListener('click', shareApplication);
     }
 
     
@@ -487,19 +638,51 @@
         }, 3500);
     }
 
-    if (fabMainBtn && fabMenu) {
-        fabMainBtn.addEventListener('click', () => {
-            const isOpen = fabMenu.classList.toggle('open');
-            fabMainBtn.classList.toggle('active', isOpen);
-        });
+    function shareApplication() {
+        const st = currentStationList[currentIndex] || {};
+        const shareData = {
+            title: 'Rádio Studio FM - Mix Digital 2026',
+            text: 'Baixe o aplicativo Rádio Studio FM para Android e ouça ' + (st.name || 'rádios ao vivo') + ' no seu celular.',
+            url: 'https://radio-studio-fm.vercel.app/'
+        };
+        const apkShare = window.Capacitor?.registerPlugin?.('AppShare')
+            || window.Capacitor?.Plugins?.AppShare;
+        if (apkShare) {
+            showToast('📦 Preparando o APK para compartilhar...');
+            return apkShare.shareApk({ text: shareData.text })
+                .catch(() => shareLinkOnly());
+        }
+        return shareLinkOnly();
+    }
 
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#floatingFabContainer') && fabMenu.classList.contains('open')) {
-                fabMenu.classList.remove('open');
-                fabMainBtn.classList.remove('active');
-            }
+    function shareLinkOnly() {
+        const st = currentStationList[currentIndex] || {};
+        const shareData = {
+            title: 'Rádio Studio FM - Mix Digital 2026',
+            text: 'Baixe o aplicativo Rádio Studio FM para Android e ouça ' + (st.name || 'rádios ao vivo') + ' no seu celular.',
+            url: 'https://radio-studio-fm.vercel.app/'
+        };
+        const nativeShare = window.Capacitor?.Plugins?.Share
+            || window.Capacitor?.registerPlugin?.('Share');
+        if (nativeShare) {
+            showToast('📤 Abrindo opções de compartilhamento...');
+            return nativeShare.share({ ...shareData, dialogTitle: 'Compartilhar Rádio Studio FM' })
+                .catch(() => console.log('Compartilhamento cancelado.'));
+        }
+        if (navigator.share) {
+            return navigator.share(shareData).catch(() => console.log('Compartilhamento cancelado.'));
+        }
+        const copyPromise = navigator.clipboard?.writeText(shareData.url);
+        if (!copyPromise) {
+            showToast('Não foi possível abrir o compartilhamento neste aparelho.');
+            return Promise.resolve();
+        }
+        return copyPromise.then(() => {
+            showToast('🔗 Link do aplicativo copiado!');
         });
     }
+
+    if (fabMainBtn) fabMainBtn.addEventListener('click', shareApplication);
 
     // Baixar / Instalar App
     if (fabInstallApp) {
@@ -514,27 +697,7 @@
     }
 
     // Compartilhar Nativo
-    if (fabShareNative) {
-        fabShareNative.addEventListener('click', async () => {
-            const st = currentStationList[currentIndex] || {};
-            const shareData = {
-                title: 'Rádio Studio FM - Mix Digital 2026',
-                text: 'Estou ouvindo: ' + (st.name || 'Studio FM') + ' com espectro Avee Player! Vem ouvir:',
-                url: window.location.href
-            };
-
-            if (navigator.share) {
-                try {
-                    await navigator.share(shareData);
-                } catch (e) {
-                    console.log('Compartilhamento cancelado.');
-                }
-            } else {
-                navigator.clipboard.writeText(window.location.href);
-                showToast('🔗 Link da rádio copiado para a área de transferência!');
-            }
-        });
-    }
+    if (fabShareNative) fabShareNative.addEventListener('click', shareApplication);
 
     // Compartilhar no WhatsApp
     if (fabShareWhatsapp) {
@@ -564,8 +727,8 @@
     const initialStation = STATIONS[0];
     audio.src = initialStation.url;
     currentStationTitle.textContent = initialStation.name;
-    currentStationGenre.innerHTML = '<i class="' + initialStation.icon + '"></i> ' + initialStation.genreLabel;
-    currentTrackName.innerHTML = '<i class="fa-solid fa-headphones"></i> ' + initialStation.track;
+    currentStationGenre.replaceChildren(createIcon(initialStation.icon), document.createTextNode(' ' + initialStation.genreLabel));
+    currentTrackName.replaceChildren(createIcon('fa-solid fa-headphones'), document.createTextNode(' ' + initialStation.track));
     setStreamStatus('idle', 'Toque em Play para sintonizar');
 
 })();

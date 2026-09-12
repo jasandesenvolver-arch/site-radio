@@ -1,0 +1,20 @@
+{
+  "name": "radio-studio-fm",
+  "version": "1.1.0",
+  "private": true,
+  "scripts": {
+    "build:web": "node scripts/build-web.js",
+    "android:add": "npm run build:web && npx cap add android",
+    "android:sync": "npm run build:web && npx cap sync android",
+    "android:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "8.1.0",
+    "@capacitor/core": "8.5.1",
+    "@capacitor/share": "^8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/android": "8.5.1",
+    "@capacitor/cli": "8.5.1"
+  }
+}

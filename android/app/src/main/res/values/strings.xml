@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rádio Studio FM</string>
+    <string name="title_activity_main">Rádio Studio FM</string>
+    <string name="package_name">br.com.studiofm.radio</string>
+    <string name="custom_url_scheme">br.com.studiofm.radio</string>
+</resources>

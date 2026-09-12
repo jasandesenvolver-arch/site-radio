@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studio-fm-v2026.1';
+const CACHE_NAME = 'studio-fm-v2026.10';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

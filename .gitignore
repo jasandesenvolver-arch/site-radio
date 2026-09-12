@@ -1,0 +1,12 @@
+node_modules/
+dist/
+android/.gradle/
+android/build/
+android/app/build/
+*.apk
+*.aab
+android/local.properties
+.gradle-user/
+android/*-output.log
+android/*-error.log
+android-*.png
