@@ -1,8 +1,6 @@
 package br.com.studiofm.radio;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.graphics.Color;
 import android.view.View;
 import android.webkit.WebView;
@@ -20,8 +18,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(BackgroundRadioPlugin.class);
         registerPlugin(AppSharePlugin.class);
         super.onCreate(savedInstanceState);
-        // Android recente força edge-to-edge. Deixamos o WebView preencher
-        // também as barras, para o fundo escuro do app aparecer nelas.
+        // O WebView ocupa a área toda. O CSS do aplicativo reserva uma faixa
+        // pequena e controlada para a barra de status, sem sobrepor o logo.
         applyEdgeToEdgeTheme();
         clearLegacyWebCache();
     }
@@ -29,7 +27,8 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
-        BackgroundRadioPlugin.stop(getApplicationContext());
+        // Não parar aqui: alguns Androids chamam onResume ao bloquear a
+        // tela. O JavaScript interrompe o serviço só ao voltar visível.
         applyEdgeToEdgeTheme();
     }
 
@@ -76,16 +75,14 @@ public class MainActivity extends BridgeActivity {
      * reabrir o HTML da versão anterior mesmo depois de uma atualização.
      */
     private void clearLegacyWebCache() {
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            WebView webView = getBridge().getWebView();
-            String script = "(async()=>{const key='studio-fm-native-cache-v2026.11';"
-                + "if(localStorage.getItem(key))return;"
-                + "const registrations=await navigator.serviceWorker.getRegistrations();"
-                + "await Promise.all(registrations.map(r=>r.unregister()));"
-                + "const names=await caches.keys();await Promise.all(names.map(n=>caches.delete(n)));"
-                + "localStorage.setItem(key,'1');location.reload();})().catch(console.warn);";
-            webView.evaluateJavascript(script, null);
-            applyEdgeToEdgeTheme();
-        }, 1200);
+        WebView webView = getBridge().getWebView();
+        // Os arquivos do APK já são a fonte atual. Limpamos recursos antigos
+        // sem chamar location.reload(), que era a causa da faixa/tela branca
+        // logo depois de abrir o aplicativo.
+        webView.clearCache(true);
+        String script = "(async()=>{const registrations=await navigator.serviceWorker.getRegistrations();"
+            + "await Promise.all(registrations.map(r=>r.unregister()));"
+            + "const names=await caches.keys();await Promise.all(names.map(n=>caches.delete(n)));})().catch(console.warn);";
+        webView.evaluateJavascript(script, null);
     }
 }

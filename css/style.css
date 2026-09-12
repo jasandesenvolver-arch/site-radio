@@ -1979,3 +1979,83 @@ body.has-mini-player .floating-fab-container {
         overflow-x: auto;
     }
 }
+
+/* No APK o WebView fica por trás das barras do Android. Reservamos apenas o
+   espaço necessário aos ícones do sistema; o cabeçalho permanece compacto e
+   não invade a barra de status. */
+body.native-app {
+    padding-top: 88px;
+}
+
+@media (max-width: 768px) {
+    body.native-app .navbar {
+        position: fixed;
+        inset: 0 0 auto;
+        min-height: 88px;
+        padding: 32px 0 8px;
+        z-index: 5000;
+        background: rgba(7, 9, 19, 0.96);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    body.native-app .nav-content {
+        min-height: 40px;
+    }
+
+    body.native-app .logo-emblem {
+        width: 40px;
+        height: 40px;
+        border-radius: 13px;
+    }
+
+    body.native-app .nav-actions .btn-install-app,
+    body.native-app .mobile-toggle {
+        min-height: 40px;
+        height: 40px;
+    }
+}
+
+/* Esta regra precisa ficar por último: em alguns aparelhos a viewport do
+   WebView é a largura física (1080 px), mas a orientação continua correta. */
+@media (orientation: portrait) {
+    body.native-app { padding-top: 72px; }
+
+    body.native-app .navbar {
+        position: fixed;
+        inset: 0 0 auto;
+        min-height: 72px;
+        padding: 30px 0 6px;
+        z-index: 5000;
+        background: rgba(7, 9, 19, 0.96);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    body.native-app .nav-content { min-height: 36px; }
+    body.native-app .logo-emblem { width: 36px; height: 36px; border-radius: 12px; font-size: 17px; }
+    body.native-app .logo-info,
+    body.native-app .nav-menu,
+    body.native-app .live-pill,
+    body.native-app #btnFullscreen { display: none; }
+    body.native-app .mobile-toggle { display: flex; width: 40px; height: 40px; border-radius: 13px; }
+    body.native-app .nav-actions .btn-install-app { min-width: 44px; height: 40px; padding: 0 13px; border-radius: 13px; }
+    body.native-app .nav-actions .btn-install-app span { display: none; }
+
+    body.native-app .station-meta-block {
+        display: grid;
+        grid-template-columns: 82px minmax(0, 1fr);
+        align-items: center;
+        gap: 14px;
+    }
+    body.native-app .cover-art-container { width: 82px; height: 82px; }
+    body.native-app .station-meta-texts { min-width: 0; overflow: visible; }
+    body.native-app .station-overline { padding-top: 0; border-top: 0; }
+    body.native-app .current-station-title,
+    body.native-app .current-track-name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
+    }
+    body.native-app .current-station-title { font-size: 22px; line-height: 1.15; }
+    body.native-app .current-track-name { line-height: 1.35; }
+}

@@ -7,7 +7,9 @@ import android.app.Service;
 import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.PowerManager;
 
 import androidx.annotation.Nullable;
@@ -21,11 +23,16 @@ public class BackgroundRadioService extends Service {
 
     private static final String CHANNEL_ID = "radio_playback";
     private static final int NOTIFICATION_ID = 2026;
+    private static final int MAX_RECONNECT_ATTEMPTS = 3;
     private MediaPlayer player;
+    private final Handler retryHandler = new Handler(Looper.getMainLooper());
+    private String activeUrl;
+    private int reconnectAttempts;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent == null || ACTION_STOP.equals(intent.getAction())) {
+            retryHandler.removeCallbacksAndMessages(null);
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -38,11 +45,19 @@ public class BackgroundRadioService extends Service {
         }
 
         startForeground(NOTIFICATION_ID, notification(title));
-        startStream(url);
-        return START_STICKY;
+        activeUrl = url;
+        reconnectAttempts = 0;
+        startStream();
+        // Em caso de o sistema recriar o serviço, pede a repetição do Intent
+        // com a URL atual em vez de reiniciar sem estação.
+        return START_REDELIVER_INTENT;
     }
 
-    private void startStream(String url) {
+    private void startStream() {
+        if (activeUrl == null || activeUrl.isEmpty()) {
+            stopSelf();
+            return;
+        }
         releasePlayer();
         try {
             player = new MediaPlayer();
@@ -51,16 +66,29 @@ public class BackgroundRadioService extends Service {
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build());
             player.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
-            player.setDataSource(url);
-            player.setOnPreparedListener(MediaPlayer::start);
+            player.setDataSource(activeUrl);
+            player.setOnPreparedListener(mediaPlayer -> {
+                reconnectAttempts = 0;
+                mediaPlayer.start();
+            });
             player.setOnErrorListener((mediaPlayer, what, extra) -> {
-                stopSelf();
+                reconnectOrStop();
                 return true;
             });
             player.prepareAsync();
         } catch (Exception error) {
-            stopSelf();
+            reconnectOrStop();
         }
+    }
+
+    private void reconnectOrStop() {
+        releasePlayer();
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            stopSelf();
+            return;
+        }
+        reconnectAttempts++;
+        retryHandler.postDelayed(this::startStream, 2500L);
     }
 
     private Notification notification(String title) {
@@ -99,6 +127,7 @@ public class BackgroundRadioService extends Service {
 
     @Override
     public void onDestroy() {
+        retryHandler.removeCallbacksAndMessages(null);
         releasePlayer();
         stopForeground(STOP_FOREGROUND_REMOVE);
         super.onDestroy();

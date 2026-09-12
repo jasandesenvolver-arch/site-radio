@@ -22,7 +22,12 @@
     // acontece, transferimos a transmissão para um serviço nativo em primeiro
     // plano, que mantém a rádio tocando fora do aplicativo.
     function backgroundRadioPlugin() {
-        return window.Capacitor?.Plugins?.BackgroundRadio || null;
+        // Capacitor 8 expõe plugins personalizados de forma diferente em
+        // alguns WebViews. Tentamos as duas APIs para não perder o áudio ao
+        // apagar a tela ou trocar de aplicativo.
+        return window.Capacitor?.Plugins?.BackgroundRadio
+            || window.Capacitor?.registerPlugin?.('BackgroundRadio')
+            || null;
     }
 
     function armBackgroundRadio() {
@@ -56,7 +61,10 @@
 
     async function stopBackgroundRadio({ resumeWebAudio = false } = {}) {
         const plugin = backgroundRadioPlugin();
-        if (!backgroundRadioActive) return;
+        // A Activity também inicia o serviço nativo como proteção quando o
+        // Android congela o WebView antes do evento visibilitychange. Por
+        // isso, ao voltar ao app sempre pedimos a parada do serviço, mesmo
+        // quando este JavaScript não chegou a marcar backgroundRadioActive.
         backgroundRadioActive = false;
 
         try {
@@ -219,6 +227,9 @@
 
         const streamUrl = st.url_resolved || st.url;
         audio.src = streamUrl;
+        // Arma o serviço antes do buffer terminar; assim o Android já tem a
+        // URL salva caso a tela seja bloqueada logo após o toque em Play.
+        armBackgroundRadio();
 
         const displayName = st.name || 'Rádio Studio FM';
         const displayGenre = st.genreLabel || st.tags || 'Música & Notícias';
